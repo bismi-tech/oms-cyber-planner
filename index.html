@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>OMS Cybersecurity Planner + Printable Report</title>
+<style>
+  :root {
+    --bg: #0b1220; --card: #0f172a; --muted: #94a3b8; --fg: #e2e8f0; --accent: #38bdf8;
+    --ok: #10b981; --warn: #f59e0b; --danger: #ef4444; --border: #1f2a44;
+  }
+  html, body { height: 100%; }
+  body {
+    margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif;
+    background: linear-gradient(180deg, #0b1220, #0b1220 60%, #0e192a);
+    color: var(--fg);
+  }
+  .wrap { max-width: 1100px; margin: 24px auto; padding: 0 16px; }
+  h1 { margin: 0 0 8px; font-weight: 800; letter-spacing: .2px; }
+  p.sub { margin: 0 12px 20px 0; color: var(--muted); }
+  .topbar { display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
+  .btn { background:#0b1426; color:var(--fg); border:1px solid var(--border); border-radius:10px; padding:10px 14px;
+    font-weight:600; cursor:pointer; }
+  .btn:hover { background:#0e1a33; }
+  .grid { display:grid; grid-template-columns: 1.2fr 1fr; gap:16px; align-items:stretch; }
+  .card {
+    background: linear-gradient(180deg, #111b32, #0f182b 60%, #0d172c);
+    border: 1px solid var(--border); border-radius: 16px; padding: 16px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.35);
+  }
+  .panel { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .meter { background:#0b1426; border:1px solid var(--border); border-radius:12px; padding:12px; }
+  .meter h3 { margin:0 0 6px; font-size:14px; display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .bar { background:#091226; height:8px; border-radius: 999px; overflow:hidden; }
+  .fill { background: var(--accent); height:100%; width:0%; transition: width .25s ease; }
+  .ok { color: var(--ok); } .warn { color: var(--warn); }
+  table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  th, td { border-bottom: 1px solid var(--border); padding: 8px 8px; vertical-align: top; }
+  th { color: var(--muted); text-align: left; font-weight: 600; font-size: 12px; letter-spacing:.2px; }
+  td small { color: var(--muted); }
+  .section { margin-top: 18px; }
+  .section h2 { margin: 4px 0 2px; font-size: 14px; color: #cbd5e1; letter-spacing:.2px; }
+  .tag { font-size: 11px; padding: 2px 8px; border-radius: 999px; border:1px solid var(--border); color: var(--muted); }
+  select {
+    background:#0b1426; color:var(--fg); border:1px solid var(--border); border-radius:8px; padding:6px 8px; font-size:12px; outline:none;
+  }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .pill { font-size:11px; padding:2px 8px; border-radius:999px; border:1px solid var(--border); }
+  .totals { display:grid; grid-template-columns: repeat(3,1fr); gap:10px; margin-top:10px; }
+  .totals .tile { background:#0b1426; border:1px solid var(--border); border-radius:10px; padding:10px; }
+  .tile h4 { margin:0 0 6px; font-size:12px; color:#cbd5e1; }
+  .tile div { font-weight:700; }
+  .sticky { position: sticky; top: 12px; }
+  .hr { height: 1px; background: var(--border); margin: 10px 0; }
+  .right { text-align:right; }
+  .persem table td, .persem table th { font-size: 12px; }
+  .note { font-size: 11px; color: #a3b2ca; }
+
+  /* Printable report styles */
+  #printable {
+    display:none; background:white; color:#0b1220; padding:28px;
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif;
+  }
+  #printable h2 { margin: 16px 0 6px; font-size: 18px; }
+  #printable h3 { margin: 12px 0 6px; font-size: 15px; }
+  #printable .grid-2 { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+  #printable .small { color:#475569; font-size:12px; }
+  #printable table { width:100%; border-collapse: collapse; margin:8px 0 16px; }
+  #printable th, #printable td { border:1px solid #e2e8f0; padding:8px; }
+  #printable th { background:#f1f5f9; text-align:left; font-weight:700; }
+  #printable .totline { font-weight:700; }
+  #printable .cap { font-weight:600; color:#334155; }
+  @media print {
+    body { background:white; }
+    .wrap, .grid, .card, .topbar { display:none !important; }
+    #printable { display:block !important; }
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div>
+        <h1>OMS Cybersecurity Course Planner</h1>
+        <p class="sub">Mark <em>Taking?</em>, choose Semester/Year. Totals update live. Click <strong>Print Selected Report</strong> for a curriculum-grid style summary.</p>
+      </div>
+      <div>
+        <button class="btn" id="btn-print">🖨️ Print Selected Report</button>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <div class="section">
+          <h2>Courses</h2>
+          <table id="course-table">
+            <thead>
+              <tr>
+                <th style="width:110px;">Code</th>
+                <th>Name</th>
+                <th style="width:150px;">Category</th>
+                <th style="width:60px;">Credits</th>
+                <th style="width:90px;">Taking?</th>
+                <th style="width:120px;">Semester</th>
+                <th style="width:90px;">Year</th>
+              </tr>
+            </thead>
+            <tbody><!-- rows injected by JS --></tbody>
+          </table>
+          <div class="hint">Tip: set <strong>CS 6250</strong> and <strong>CS 6262</strong> to “Yes” and choose <strong>Fall 2025</strong>.</div>
+          <div class="hr"></div>
+          <div class="persem">
+            <h2>Per-Semester Credits (Planned)</h2>
+            <table id="per-sem">
+              <thead><tr><th>Semester</th><th class="right">Credits</th></tr></thead>
+              <tbody></tbody>
+            </table>
+            <div class="note">Only courses marked “Yes” are counted.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card sticky">
+        <h2>Progress Meter</h2>
+        <div class="panel">
+          <div class="meter">
+            <h3>Interdisciplinary Core <span id="pc-core" class="pill"></span></h3>
+            <div class="bar"><div id="bar-core" class="fill"></div></div>
+            <div class="small">Choose up to 6 hrs (e.g., CS 6035, PUBP 6725).</div>
+          </div>
+          <div class="meter">
+            <h3>Flexible Core <span id="pc-flex" class="pill"></span></h3>
+            <div class="bar"><div id="bar-flex" class="fill"></div></div>
+            <div class="small">Counts up to 3 hrs from <em>Policy Required</em> or <em>CPS Required</em>.</div>
+          </div>
+          <div class="meter">
+            <h3>InfoSec Required <span id="pc-req" class="pill"></span></h3>
+            <div class="bar"><div id="bar-req" class="fill"></div></div>
+            <div class="small">Select 4 courses (12 hrs) from InfoSec Required.</div>
+          </div>
+          <div class="meter">
+            <h3>Track Electives <span id="pc-elec" class="pill"></span></h3>
+            <div class="bar"><div id="bar-elec" class="fill"></div></div>
+            <div class="small">Two electives (6 hrs) from any track.</div>
+          </div>
+          <div class="meter">
+            <h3>Practicum <span id="pc-prac" class="pill"></span></h3>
+            <div class="bar"><div id="bar-prac" class="fill"></div></div>
+            <div class="small">Practicum is 5 hrs.</div>
+          </div>
+        </div>
+
+        <div class="totals">
+          <div class="tile"><h4>Total Planned</h4><div id="tot-planned">0</div><div class="small">Counts only items you marked “Yes”</div></div>
+          <div class="tile"><h4>Target</h4><div>32</div><div class="small">Program total</div></div>
+          <div class="tile"><h4>Remaining</h4><div id="tot-remaining">32</div><div class="small">Target – Planned</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PRINTABLE REPORT -->
+  <div id="printable">
+    <div id="report"><!-- built by JS --></div>
+  </div>
+
+<script>
+/* ---------- Catalog (includes Core courses now) ---------- */
+const CATALOG = [
+  // Interdisciplinary Core (NEW selectable)
+  ["CS 6035","Introduction to Information Security","Interdisciplinary Core",3],
+  ["PUBP 6725","Information Security Policies and Strategies","Interdisciplinary Core",3],
+
+  // InfoSec Required
+  ["CS 6260","Applied Cryptography","InfoSec Required",3],
+  ["CS 6238","Secure Computer Systems","InfoSec Required",3],
+  ["CS 6262","Network Security","InfoSec Required",3],
+  ["CS 6265","InfoSec Lab: RE & Binary Exploit","InfoSec Required",3],
+  ["CS 6264","InfoSec Lab: System & Network Defenses","InfoSec Required",3],
+
+  // Electives (common)
+  ["CS 6210","Advanced Operating Systems","Elective",3],
+  ["CS 6239","Enterprise Cybersecurity Management","Elective",3],
+  ["CS 6250","Computer Networks","Elective",3],
+  ["CS 6261","Security Ops & Incident Response","Elective",3],
+  ["CS 6747","Advanced Topics in Malware Analysis","Elective",3],
+  ["CS 6300","Software Development Process","Elective",3],
+  ["CS 6400","Database System Concepts & Design","Elective",3],
+
+  // CPS Required (eligible for Flexible Core)
+  ["ECE 6320","Power Systems Control & Operation","CPS Required",3],
+  ["ECE 6374","Cyber-Physical Electric Energy Systems","CPS Required",3],
+  ["ECE 8813","Intro to CPS Security","CPS Required",3],
+  ["ECE 8823","Cyber Physical Design and Analysis","CPS Required",3],
+
+  // CPS electives examples
+  ["ECE 6323","Power System Protection","Elective",3],
+  ["ECE 8843","Side-Channels & Their Role in Cybersecurity","Elective",3],
+
+  // Policy Required (eligible for Flexible Core)
+  ["INTA 6103","International Security","Policy Required",3],
+  ["INTA 6450","Big Data and Security","Policy Required",3],
+  ["MGT 6727","Privacy for Professionals","Policy Required",3],
+  ["PUBP 6501","Information Policy & Management","Policy Required",3],
+  ["PUBP 6502","ICT Policy","Policy Required",3],
+  ["PUBP 8803","Security Incident Response (Policy)","Policy Required",3],
+  ["PUBP 8813","Public Policy for the Digital World","Policy Required",3],
+  ["PUBP 8823","Geopolitics of Cybersecurity","Policy Required",3],
+  ["PUBP 8833","Enterprise Cybersecurity Management (Policy)","Policy Required",3],
+
+  // Policy elective example
+  ["INTA 6742","Modeling, Simulation & Military Gaming","Elective",3],
+
+  // Practicum
+  ["CS/ECE/PUBP 6727","Practicum","Practicum",5],
+];
+const YEARS = [2025,2026,2027,2028,2029];
+
+/* ---------- Build table ---------- */
+const tableBody = document.querySelector("#course-table tbody");
+const perSemBody = document.querySelector("#per-sem tbody");
+
+function createRow(course) {
+  const [code, name, cat, credits] = course;
+  const tr = document.createElement("tr");
+
+  const tdCode = document.createElement("td"); tdCode.textContent = code; tr.appendChild(tdCode);
+  const tdName = document.createElement("td"); tdName.innerHTML = `<div>${name}</div><small class="tag">${cat}</small>`; tr.appendChild(tdName);
+  const tdCat  = document.createElement("td"); tdCat.textContent = cat; tr.appendChild(tdCat);
+  const tdCr   = document.createElement("td"); tdCr.textContent = credits; tr.appendChild(tdCr);
+
+  // Taking?
+  const tdTake = document.createElement("td");
+  const selYes = document.createElement("select");
+  ["No","Yes"].forEach(v => { const o=document.createElement("option"); o.value=v; o.textContent=v; selYes.appendChild(o); });
+  selYes.dataset.key = `take_${code}`;
+  tdTake.appendChild(selYes); tr.appendChild(tdTake);
+
+  // Semester
+  const tdSem = document.createElement("td");
+  const selSem = document.createElement("select");
+  ["","Fall","Spring","Summer"].forEach(v => { const o=document.createElement("option"); o.value=v; o.textContent=v||"—"; selSem.appendChild(o); });
+  selSem.dataset.key = `sem_${code}`;
+  tdSem.appendChild(selSem); tr.appendChild(tdSem);
+
+  // Year
+  const tdYear = document.createElement("td");
+  const selYear = document.createElement("select");
+  ["",...YEARS].forEach(v => { const o=document.createElement("option"); o.value=v; o.textContent=v||"—"; selYear.appendChild(o); });
+  selYear.dataset.key = `year_${code}`;
+  tdYear.appendChild(selYear); tr.appendChild(tdYear);
+
+  // Restore
+  const savedTake = localStorage.getItem(selYes.dataset.key);
+  const savedSem  = localStorage.getItem(selSem.dataset.key);
+  const savedYear = localStorage.getItem(selYear.dataset.key);
+  if (savedTake) selYes.value = savedTake;
+  if (savedSem) selSem.value = savedSem;
+  if (savedYear) selYear.value = savedYear;
+
+  [selYes, selSem, selYear].forEach(el => el.addEventListener("change", () => {
+    localStorage.setItem(el.dataset.key, el.value); recalc();
+  }));
+
+  return tr;
+}
+CATALOG.forEach(c => tableBody.appendChild(createRow(c)));
+
+/* ---------- Totals logic ---------- */
+const GOAL = { core:6, flex:3, req:12, elec:6, prac:5, total:32 };
+
+function setMeter(idFill, idPill, have, need) {
+  const pct = Math.min(100, Math.round((have/need)*100));
+  document.getElementById(idFill).style.width = (need===0?100:pct) + "%";
+  const pill = document.getElementById(idPill);
+  pill.textContent = `${have} / ${need} hrs`;
+  pill.className = "pill " + (have >= need ? "ok" : (have > 0 ? "warn" : ""));
+}
+
+function recalc() {
+  let core=0, flexEligible=0, req=0, elec=0, prac=0;
+  const semTotals = {};
+  let planned = 0;
+
+  CATALOG.forEach(([code, name, cat, credits]) => {
+    const take = (localStorage.getItem("take_"+code) || "No") === "Yes";
+    if (!take) return;
+    const sem = localStorage.getItem("sem_"+code) || "";
+    const year = localStorage.getItem("year_"+code) || "";
+    const semKey = sem && year ? `${sem} ${year}` : null;
+
+    if (cat === "Interdisciplinary Core") core += credits;
+    if (cat === "Policy Required" || cat === "CPS Required") flexEligible += credits;
+    if (cat === "InfoSec Required") req += credits;
+    if (cat === "Elective") elec += credits;
+    if (cat === "Practicum") prac += credits;
+
+    if (semKey) semTotals[semKey] = (semTotals[semKey] || 0) + credits;
+  });
+
+  const flex = Math.min(GOAL.flex, flexEligible);
+  const coreCounted = Math.min(GOAL.core, core);
+  planned = coreCounted + flex + req + elec + prac;
+
+  setMeter("bar-core", "pc-core", coreCounted, GOAL.core);
+  setMeter("bar-flex", "pc-flex", flex, GOAL.flex);
+  setMeter("bar-req",  "pc-req",  req,  GOAL.req);
+  setMeter("bar-elec", "pc-elec", elec, GOAL.elec);
+  setMeter("bar-prac", "pc-prac", prac, GOAL.prac);
+
+  document.getElementById("tot-planned").textContent = planned;
+  document.getElementById("tot-remaining").textContent = Math.max(0, GOAL.total - planned);
+
+  // Per-semester table
+  perSemBody.innerHTML = "";
+  const keys = Object.keys(semTotals).sort((a,b)=>{
+    const [sa, ya] = a.split(" "); const [sb, yb] = b.split(" ");
+    const order = {Spring:0,Summer:1,Fall:2};
+    if (ya !== yb) return (+ya) - (+yb);
+    return (order[sa]||3) - (order[sb]||3);
+  });
+  keys.forEach(k => {
+    const tr = document.createElement("tr");
+    const td1 = document.createElement("td"); td1.textContent = k; tr.appendChild(td1);
+    const td2 = document.createElement("td"); td2.textContent = semTotals[k]; td2.className="right"; tr.appendChild(td2);
+    perSemBody.appendChild(tr);
+  });
+}
+recalc();
+
+/* ---------- Printable Report ---------- */
+function pickByCat(catName) {
+  return CATALOG
+    .map(([code, name, cat, credits]) => {
+      const take = (localStorage.getItem("take_"+code) || "No") === "Yes";
+      if (!take || cat !== catName) return null;
+      const sem = localStorage.getItem("sem_"+code) || "";
+      const year = localStorage.getItem("year_"+code) || "";
+      return { code, name, cat, credits, sem, year };
+    })
+    .filter(Boolean);
+}
+function sumCredits(rows) { return (rows||[]).reduce((a,b)=>a + (b.credits||0), 0); }
+function renderRows(rows) {
+  if (!rows || rows.length === 0) return '<tr><td colspan="4" class="small">None selected</td></tr>';
+  return rows.map(r => `
+    <tr>
+      <td>${r.code}</td>
+      <td>${r.name}</td>
+      <td>${r.sem ? r.sem : ""} ${r.year ? r.year : ""}</td>
+      <td class="right">${r.credits}</td>
+    </tr>
+  `).join("");
+}
+function buildReportHTML() {
+  const core = pickByCat("Interdisciplinary Core");
+  const infoReq = pickByCat("InfoSec Required");
+  const electives = pickByCat("Elective");
+  const practicum = pickByCat("Practicum");
+
+  // Flexible core = selected Policy/CPS Required, capped at 3 counted hrs
+  const flexAll = CATALOG
+    .map(([code, name, cat, credits]) => {
+      const take = (localStorage.getItem("take_"+code) || "No") === "Yes";
+      if (!take) return null;
+      if (cat !== "Policy Required" && cat !== "CPS Required") return null;
+      const sem = localStorage.getItem("sem_"+code) || "";
+      const year = localStorage.getItem("year_"+code) || "";
+      return { code, name, cat, credits, sem, year };
+    })
+    .filter(Boolean);
+
+  const coreTotal = Math.min(6, sumCredits(core));
+  const flexTotal = Math.min(3, sumCredits(flexAll));
+  const reqTotal = sumCredits(infoReq);
+  const elecTotal = sumCredits(electives);
+  const pracTotal = sumCredits(practicum);
+  const grandTotal = coreTotal + flexTotal + reqTotal + elecTotal + pracTotal;
+
+  const header = `
+    <h2>Online Master of Science in Cybersecurity — Curriculum Plan</h2>
+    <div class="small">Only courses you marked <strong>Yes</strong> are shown below (Semester/Year included).</div>
+    <div class="grid-2">
+      <div><div class="cap">Total Planned (Program counts):</div><div><strong>${grandTotal} / 32 hours</strong></div></div>
+      <div><div class="cap">Breakdown (counted):</div>
+        <div class="small">Core ${coreTotal} • Flex ${flexTotal} • Required ${reqTotal} • Electives ${elecTotal} • Practicum ${pracTotal}</div>
+      </div>
+    </div>
+    <hr />
+  `;
+
+  const coreBlock = `
+    <h3>INTERDISCIPLINARY CORE (6 hours)</h3>
+    <table>
+      <thead><tr><th>Course</th><th>Title</th><th class="cap">When</th><th class="right">Credits</th></tr></thead>
+      <tbody>
+        ${renderRows(core)}
+        <tr class="totline"><td colspan="3">Core Counted Total</td><td class="right">${coreTotal}</td></tr>
+      </tbody>
+    </table>
+  `;
+  const flexBlock = `
+    <h3>FLEXIBLE CORE (up to 3 hours)</h3>
+    <div class="small">Select a required course from a different track (Policy or CPS). Program counts up to 3 hours.</div>
+    <table>
+      <thead><tr><th>Course</th><th>Title</th><th class="cap">When</th><th class="right">Credits</th></tr></thead>
+      <tbody>
+        ${renderRows(flexAll)}
+        <tr class="totline"><td colspan="3">Flexible Core Counted</td><td class="right">${flexTotal}</td></tr>
+      </tbody>
+    </table>
+  `;
+  const infoReqBlock = `
+    <h3>TRACK — REQUIRED COURSES (12 hours)</h3>
+    <table>
+      <thead><tr><th>Course</th><th>Title</th><th class="cap">When</th><th class="right">Credits</th></tr></thead>
+      <tbody>
+        ${renderRows(infoReq)}
+        <tr class="totline"><td colspan="3">InfoSec Required Subtotal</td><td class="right">${reqTotal}</td></tr>
+      </tbody>
+    </table>
+  `;
+  const electiveBlock = `
+    <h3>TRACK — ELECTIVES (6 hours)</h3>
+    <table>
+      <thead><tr><th>Course</th><th>Title</th><th class="cap">When</th><th class="right">Credits</th></tr></thead>
+      <tbody>
+        ${renderRows(electives)}
+        <tr class="totline"><td colspan="3">Electives Subtotal</td><td class="right">${elecTotal}</td></tr>
+      </tbody>
+    </table>
+  `;
+  const practicumBlock = `
+    <h3>PRACTICAL EXPERIENCE (5 hours)</h3>
+    <table>
+      <thead><tr><th>Course</th><th>Title</th><th class="cap">When</th><th class="right">Credits</th></tr></thead>
+      <tbody>
+        ${renderRows(practicum)}
+        <tr class="totline"><td colspan="3">Practicum Subtotal</td><td class="right">${pracTotal}</td></tr>
+      </tbody>
+    </table>
+  `;
+
+  return header + coreBlock + flexBlock + infoReqBlock + electiveBlock + practicumBlock +
+         `<div class="small">Note: Flexible Core counts up to 3 hours even if more are listed above.</div>`;
+}
+
+document.getElementById("btn-print").addEventListener("click", () => {
+  const container = document.getElementById("report");
+  container.innerHTML = buildReportHTML();
+  window.print();
+});
+</script>
+</body>
+</html>
